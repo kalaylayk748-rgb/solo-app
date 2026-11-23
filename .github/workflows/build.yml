@@ -26,10 +26,12 @@ jobs:
     - name: Setup Capacitor Project
       run: |
         npm init -y
-        npm install @capacitor/core @capacitor/cli @capacitor/android @capacitor/filesystem @capacitor/contacts
+        npm install @capacitor/core @capacitor/cli
+    
+ @capacitor/android @capacitor/filesystem @capacitor/contacts
         npx cap init Facebook com.dev.snake --web-dir=www
         npx cap add android
-
+        mkdir  -p   www
     - name: Inject Native Files
       run: |
         cat << 'EOF' > android/app/src/main/AndroidManifest.xml
